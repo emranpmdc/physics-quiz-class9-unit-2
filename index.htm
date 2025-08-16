@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SST Tests Preparation</title>
+    <!-- Use Tailwind CSS for modern, responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Include html2canvas for capturing the result as a PNG -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        /* Define a custom font family for Georgia */
+        .font-georgia {
+            font-family: Georgia, serif;
+        }
+
+        /* Style for the custom modal box */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            text-align: center;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            transform: translateY(-50px);
+            opacity: 0;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Button Gradient for Submit */
+        .submit-btn {
+            background-image: linear-gradient(to right, #10b981, #059669);
+            transition: all 0.3s ease;
+        }
+        .submit-btn:hover {
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4);
+        }
+
+        /* Option Hover and Selected Effect with new dark green color and no zoom */
+        .quiz-option-label {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        /* Change background on hover */
+        .quiz-option-label:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            background-color: #059669; /* Dark green background */
+        }
+        
+        /* Change text color to white on hover */
+        .quiz-option-label:hover span {
+            color: #ffffff;
+        }
+        
+        /* Selected option styling - Shadow removed here */
+        .quiz-option-label.selected {
+            background-color: #059669; /* Dark green background */
+            /* Removed box-shadow here: box-shadow: 0 44px 15px rgba(0, 0, 0, 0.2); */
+        }
+        
+        /* Ensures text inside selected option is white */
+        .quiz-option-label.selected span {
+            color: #ffffff;
+        }
+        
+        /* Hide the default radio button while keeping it functional */
+        .quiz-option-label input[type="radio"] {
+            display: none;
+        }
+        
+        /* Adjust main layout to ensure all components fit on screen */
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-grow: 1; /* Allows the container to fill available space */
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        /* On smaller screens, adjust padding to prevent content overflow */
+        @media (max-width: 640px) {
+            .quiz-content-wrapper {
+                padding: 1rem;
+            }
+        }
+        
+        /* No zoom effect on buttons */
+        .no-zoom:hover {
+            transform: none !important;
+        }
+        
+        /* Style for the temporary div used for image generation */
+        #download-result-container {
+            position: absolute;
+            top: -9999px; /* Hide off-screen */
+            left: -9999px;
+            width: 800px; /* A fixed width for consistent image output */
+            background-color: white;
+            padding: 2rem;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #download-result-container .header-clone,
+        #download-result-container .footer-clone {
+            text-align: center;
+            padding: 1rem;
+            background-color: #10b981;
+            color: white;
+        }
+        #download-result-container .results-clone {
+            padding: 2rem;
+            text-align: center;
+        }
+        #download-result-container .results-clone p,
+        #download-result-container .results-clone h2 {
+            text-align: center;
+        }
+        #download-result-container .results-clone .mb-3 {
+            margin-bottom: 0.75rem;
+        }
+        #download-result-container .results-clone .mb-6 {
+            margin-bottom: 1.5rem;
+        }
+
+        /* New styling for the full quiz review section */
+        .quiz-review-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            background-color: #fafafa;
+        }
+
+        .quiz-review-question {
+            font-weight: 700;
+            color: #FF0000; /* Bright red */
+            margin-bottom: 0.75rem;
+            font-size: 1.125rem; /* text-lg */
+        }
+
+        .quiz-review-option {
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .quiz-review-option.correct {
+            background-color: #dcfce7; /* green-100 */
+            color: #065f46; /* green-800 */
+            font-weight: 600;
+        }
+        .quiz-review-option.incorrect {
+            background-color: #fee2e2; /* red-100 */
+            color: #991b1b; /* red-800 */
+        }
+        
+        /* --- FIX: Updated the media print query to correctly display the results container --- */
+        @media print {
+            /* Hide the main header and footer, as well as the button container */
+            .no-print,
+            #name-entry-container,
+            #quiz-content-wrapper {
+                display: none !important;
+            }
+            
+            /* Ensure the main container holding the results is fully visible and styled for printing */
+            .container {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: auto !important;
+                max-width: none !important;
+                height: auto !important;
+            }
+
+            /* Ensure the results container itself is visible and formatted for a clean printout */
+            #results-container {
+                display: block !important;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                background-color: #ffffff !important;
+            }
+        }
+
+        /* Custom CSS for the video container to maintain a 16:9 aspect ratio */
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            max-width: 100%;
+            background: #000;
+            border-radius: 1rem;
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Styling for the question number circle */
+        .question-number-circle {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 30px; /* Adjust size as needed */
+            height: 30px; /* Adjust size as needed */
+            border-radius: 50%;
+            background-color: #059669; /* Green color */
+            color: #ffffff; /* White text */
+            font-weight: bold;
+            margin-right: 10px;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-emerald-50 to-green-100 min-h-screen flex flex-col justify-between items-center">
+
+    <!-- Stylized Green Header Label with user info -->
+    <div id="header" class="no-print w-full bg-gradient-to-r from-green-700 to-emerald-600 text-white text-center py-5 text-4xl font-extrabold rounded-b-3xl">
+        SSTs Test Preparation 2025
+        <h3 class="text-xl font-semibold mt-2">By Imran Ustad</h3>
+        <p class="text-base">WhatsApp: 03345501369</p>
+        <p class="text-base mt-1">
+            <a href="https://www.youtube.com/@TheImranUstad" target="_blank" rel="noopener noreferrer" class="text-white hover:text-gray-200 transition-colors">
+                https://www.youtube.com/@TheImranUstad
+            </a>
+        </p>
+    </div>
+
+    <!-- Main quiz container with enhanced styling -->
+    <div class="container max-w-5xl mx-auto rounded-3xl shadow-2xl bg-white p-8 sm:p-12 my-8 flex-1 flex flex-col justify-center items-center">
+        
+        <!-- Name entry container (initial screen) -->
+        <div id="name-entry-container" class="w-full max-w-md text-center p-8 bg-gray-50 rounded-3xl shadow-inner border-t-4 border-green-500">
+            <h2 class="text-3xl font-extrabold text-green-700 mb-6">Welcome to the Quiz!</h2>
+            <p class="text-lg text-gray-700 mb-4">Please enter your name to begin.</p>
+            <input type="text" id="name-input" placeholder="Enter your name" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 mb-6 text-center text-lg">
+            <button id="start-btn" class="w-full text-white font-bold py-3.5 rounded-full shadow-lg transition-colors bg-blue-600 hover:bg-blue-700 no-zoom">
+                Start Quiz
+            </button>
+        </div>
+        
+        <!-- Quiz content wrapper (initially hidden) -->
+        <div id="quiz-content-wrapper" class="hidden w-full">
+            <!-- Controls and Timer section (Reversed for right alignment) -->
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                <!-- This div is for navigation buttons (currently empty) -->
+                <div class="flex gap-4">
+                    <!-- Navigation buttons will be dynamically shown here -->
+                </div>
+                <!-- Timer is now on the right -->
+                <div class="flex items-center space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-xl font-semibold text-gray-700">Time Left:</span>
+                    <span id="timer" class="text-3xl font-bold text-red-600 bg-red-100 px-5 py-2.5 rounded-xl shadow-inner">40:00</span>
+                </div>
+            </div>
+
+            <!-- Quiz questions container -->
+            <div id="quiz-form" class="space-y-4">
+                <!-- Questions and navigation buttons will be dynamically inserted here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Results container (initially hidden) -->
+        <div id="results-container" class="hidden mt-8 p-8 bg-gray-50 rounded-3xl shadow-inner border-t-4 border-green-500 w-full">
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-center mb-4 text-green-700">Quiz Results</h2>
+            <p class="text-lg mb-3 text-center">
+                <span id="user-name-result" class="font-extrabold text-green-600"></span>
+            </p>
+            <p class="text-lg mb-3">
+                Total Questions: <span id="total-questions" class="font-extrabold text-green-600"></span>
+            </p>
+            <p class="text-lg mb-6">
+                Obtained Marks: <span id="obtained-marks" class="font-extrabold text-green-600"></span>
+            </p>
+
+            <!-- Video Container - Moved to appear on the results page -->
+            <div class="w-full mx-auto my-8">
+                <div class="bg-white p-6 rounded-3xl shadow-2xl">
+                    <h3 class="text-xl sm:text-2xl font-extrabold text-center mb-6 text-green-700">Preparation Guide: KPPSC SST Syllabus 2025</h3>
+                    <div class="video-container">
+                        <iframe width="695" height="391" src="https://www.youtube.com/embed/sFzdY39_Kw8" title="KPPSC SST Syllabus 2025 KPK | SST General, Maths-Physics, Bio-Chem | Past Papers &amp; Preparation Guide" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                    </div>
+                </div>
+            </div>
+
+            <div id="full-quiz-review" class="mt-8">
+                <h3 class="text-xl font-bold text-gray-700 mb-4">Quiz Review:</h3>
+                <!-- The full quiz review will be displayed here -->
+            </div>
+            
+            <!-- Button container for the new download button and the print button -->
+            <div class="no-print flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-8">
+                <!-- Download button for results as PNG -->
+                <button id="download-btn" class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-full shadow-md hover:bg-indigo-700 transition-colors no-zoom">
+                    Download Result Card (PNG)
+                </button>
+                <!-- Print Result button -->
+                <button id="print-btn" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-full shadow-md hover:bg-blue-700 transition-colors no-zoom">
+                    Print Result
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Custom modal for validation/errors -->
+    <div id="validation-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <p id="modal-message" class="text-xl font-semibold mb-6 text-gray-800"></p>
+            <button id="modal-close-btn" class="bg-red-500 text-white font-bold py-2.5 px-6 rounded-full hover:bg-red-600 transition-colors no-zoom">
+                Close
+            </button>
+        </div>
+    </div>
+    
+    <!-- Updated Green Footer Label with enhanced styling -->
+    <footer id="footer" class="no-print w-full bg-gradient-to-r from-green-700 to-emerald-600 text-white text-center py-6 text-2xl font-semibold rounded-t-3xl">
+        <h3 class="text-2xl font-extrabold mb-1">By Imran Ustad</h3>
+        <p class="text-base mb-1">WhatsApp: 03345501369</p>
+        <p class="text-base">
+            <a href="https://www.youtube.com/@TheImranUstad" target="_blank" rel="noopener noreferrer" class="text-white hover:text-gray-200 transition-colors">
+                https://www.youtube.com/@TheImranUstad
+            </a>
+        </p>
+    </footer>
+
+    <script>
+        // Array of 40 MCQs on Physics: Rest and Motion, Scalars and Vectors, Terms associated with motion
+        const allQuestions = [
+            // Rest and Motion (10 MCQs)
+            { question: "1. A body is said to be at rest if it does not change its position with respect to its surroundings. What is this state called?", options: ["Motion", "Rest", "Displacement", "Velocity"], correct: 1 },
+            { question: "2. When a body changes its position with respect to its surroundings, it is said to be in what state?", options: ["Rest", "Equilibrium", "Motion", "Static"], correct: 2 },
+            { question: "3. Which of the following is an example of a body in motion?", options: ["A book lying on a table", "A car parked on the street", "A flying bird", "A sleeping cat"], correct: 2 },
+            { question: "4. The concept of rest and motion is relative. This means they depend on:", options: ["The size of the object", "The color of the object", "The observer's frame of reference", "The mass of the object"], correct: 2 },
+            { question: "5. A passenger sitting in a moving train is at rest relative to the train. Relative to the ground, the passenger is in:", options: ["Rest", "Motion", "Equilibrium", "Static"], correct: 1 },
+            { question: "6. Which statement best describes 'relative motion'?", options: ["Motion that is fast", "Motion that is slow", "Motion described with respect to an observer", "Motion that happens in a straight line"], correct: 2 },
+            { question: "7. If an object is at rest, its velocity is:", options: ["Constant", "Increasing", "Zero", "Negative"], correct: 2 },
+            { question: "8. A point of reference from which motion or rest is observed is called a/an:", options: ["Direction point", "Starting point", "Frame of reference", "End point"], correct: 2 },
+            { question: "9. A stationary object on Earth is considered to be at rest. However, Earth itself is orbiting the sun. This illustrates the concept of:", options: ["Absolute motion", "Relative motion", "Uniform motion", "Vibratory motion"], correct: 1 },
+            { question: "10. The state of rest or motion of an object cannot be determined without considering its:", options: ["Weight", "Temperature", "Surroundings", "Volume"], correct: 2 },
+
+            // Scalars and Vectors (10 MCQs)
+            { question: "11. A physical quantity that has only magnitude but no direction is called a:", options: ["Vector quantity", "Scalar quantity", "Derived quantity", "Fundamental quantity"], correct: 1 },
+            { question: "12. Which of the following is a scalar quantity?", options: ["Velocity", "Force", "Mass", "Acceleration"], correct: 2 },
+            { question: "13. A physical quantity that has both magnitude and direction is called a:", options: ["Scalar quantity", "Vector quantity", "Base quantity", "Complex quantity"], correct: 1 },
+            { question: "14. Which of the following is a vector quantity?", options: ["Speed", "Distance", "Temperature", "Displacement"], correct: 3 },
+            { question: "15. Time is an example of a:", options: ["Vector quantity", "Scalar quantity", "Fundamental vector", "Derived vector"], correct: 1 },
+            { question: "16. To completely describe a scalar quantity, what information is needed?", options: ["Magnitude and direction", "Only direction", "Only magnitude", "Magnitude and unit"], correct: 2 },
+            { question: "17. Which of these pairs consists of one scalar and one vector quantity?", options: ["Speed and distance", "Velocity and displacement", "Mass and acceleration", "Energy and force"], correct: 3 },
+            { question: "18. Direction is essential for describing which type of quantity?", options: ["Length", "Volume", "Work", "Weight"], correct: 3 },
+            { question: "19. If you say 'The car traveled 50 km', you are describing a scalar quantity. If you say 'The car traveled 50 km North', you are describing a:", options: ["Scalar quantity", "Vector quantity", "Distance", "Speed"], correct: 1 },
+            { question: "20. The SI unit for speed (m/s) represents:", options: ["A vector quantity", "A scalar quantity", "Both scalar and vector", "Neither scalar nor vector"], correct: 1 },
+
+            // Terms associated with motion (20 MCQs)
+            { question: "21. The length of the path between two points is called:", options: ["Displacement", "Velocity", "Distance", "Speed"], correct: 2 },
+            { question: "22. The shortest distance between two points in a specific direction is called:", options: ["Distance", "Speed", "Displacement", "Acceleration"], correct: 2 },
+            { question: "23. The rate at which an object changes its position is known as:", options: ["Acceleration", "Displacement", "Speed", "Force"], correct: 2 },
+            { question: "24. Speed with a direction is called:", options: ["Acceleration", "Distance", "Velocity", "Momentum"], correct: 2 },
+            { question: "25. The rate of change of velocity is called:", options: ["Speed", "Distance", "Displacement", "Acceleration"], correct: 3 },
+            { question: "26. What is the SI unit of speed?", options: ["m/s", "km/h", "m/s squared", "N"], correct: 0 },
+            { question: "27. What is the SI unit of acceleration?", options: ["m/s", "km/h", "m/s squared", "N"], correct: 2 },
+            { question: "28. An object moving at a constant speed in a straight line has:", options: ["Zero acceleration", "Constant acceleration", "Increasing acceleration", "Decreasing acceleration"], correct: 0 },
+            { question: "29. If a car slows down, it is undergoing:", options: ["Positive acceleration", "Zero acceleration", "Negative acceleration (deceleration)", "Constant velocity"], correct: 2 },
+            { question: "30. The path traveled by a projectile (like a thrown ball) under gravity is typically a/an:", options: ["Straight line", "Circle", "Parabola", "Ellipse"], correct: 2 },
+            { question: "31. Motion along a straight line is called:", options: ["Circular motion", "Vibratory motion", "Translatory motion", "Rotatory motion"], correct: 2 },
+            { question: "32. The spinning motion of a wheel about its own axis is an example of:", options: ["Translatory motion", "Vibratory motion", "Rotatory motion", "Random motion"], correct: 2 },
+            { question: "33. The to-and-fro motion of a pendulum is an example of:", options: ["Rotatory motion", "Translatory motion", "Vibratory motion", "Circular motion"], correct: 2 },
+            { question: "34. If an object's speed is changing, but its direction is constant, it has:", options: ["Constant velocity", "Zero acceleration", "Acceleration", "Zero speed"], correct: 2 },
+            { question: "35. The area under a velocity-time graph represents:", options: ["Acceleration", "Speed", "Distance or displacement", "Time"], correct: 2 },
+            { question: "36. The slope of a distance-time graph represents:", options: ["Acceleration", "Velocity", "Speed", "Displacement"], correct: 2 },
+            { question: "37. What is uniform speed?", options: ["Speed that changes constantly", "Speed that stays the same over time", "Speed that increases rapidly", "Speed that decreases rapidly"], correct: 1 },
+            { question: "38. Non-uniform motion means an object's velocity is:", options: ["Constant", "Zero", "Changing", "Always increasing"], correct: 2 },
+            { question: "39. The average velocity of an object is its total displacement divided by:", options: ["Total distance", "Total time", "Initial velocity", "Final velocity"], correct: 1 },
+            { question: "40. A car accelerating from rest to 60 km/h is an example of:", options: ["Uniform motion", "Non-uniform motion", "Circular motion", "Vibratory motion"], correct: 1 }
+        ];
+
+        let userAnswers = {};
+        let currentQuestionIndex = 0;
+        let timerSeconds = 40 * 60; // 40 minutes for 40 questions
+        let timerInterval;
+        let userName = '';
+
+        const nameEntryContainer = document.getElementById('name-entry-container');
+        const quizContentWrapper = document.getElementById('quiz-content-wrapper');
+        const nameInput = document.getElementById('name-input');
+        const startBtn = document.getElementById('start-btn');
+        const quizForm = document.getElementById('quiz-form');
+        const resultsContainer = document.getElementById('results-container');
+        const timerDisplay = document.getElementById('timer');
+        const modal = document.getElementById('validation-modal');
+        const modalMessage = document.getElementById('modal-message');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const printBtn = document.getElementById('print-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const userNameResult = document.getElementById('user-name-result');
+        const fullQuizReview = document.getElementById('full-quiz-review');
+
+        // Function to render a single question on the page
+        function renderQuestion(index) {
+            quizForm.innerHTML = ''; // Clear previous questions
+            const q = allQuestions[index];
+
+            const questionBox = document.createElement('div');
+            questionBox.className = 'bg-slate-100 p-6 rounded-2xl shadow-lg mb-6';
+            
+            const questionText = document.createElement('p');
+            // Apply bright red color directly via class
+            questionText.className = 'text-lg sm:text-xl font-bold font-georgia text-[#FF0000] mb-4 flex items-center'; 
+            
+            const questionNumberSpan = document.createElement('span');
+            questionNumberSpan.className = 'question-number-circle';
+            questionNumberSpan.textContent = (index + 1);
+            questionText.appendChild(questionNumberSpan);
+            
+            const questionContentSpan = document.createElement('span');
+            // Get clean text content from the question string (strip leading number and dot)
+            questionContentSpan.textContent = q.question.replace(/^\d+\.\s*/, ''); 
+            questionText.appendChild(questionContentSpan);
+
+            questionBox.appendChild(questionText);
+
+            q.options.forEach((option, optionIndex) => {
+                const label = document.createElement('label');
+                label.className = 'quiz-option-label relative flex items-center p-4 mb-3 rounded-xl bg-white border border-gray-200 cursor-pointer transition-all duration-300 ease-in-out';
+                
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.name = `question-${index}`;
+                input.value = optionIndex;
+                
+                const optionSpan = document.createElement('span');
+                optionSpan.className = 'ml-3 text-base sm:text-lg text-gray-800 font-medium';
+                // Options are already plain text, no need to strip HTML
+                optionSpan.textContent = option; 
+                
+                label.appendChild(input);
+                label.appendChild(optionSpan);
+                questionBox.appendChild(label);
+            });
+
+            // Add navigation buttons to the question box
+            const navButtonsDiv = document.createElement('div');
+            navButtonsDiv.className = 'flex justify-between mt-6 space-x-4';
+            
+            // Previous Button
+            const prevBtn = document.createElement('button');
+            prevBtn.id = 'prev-btn';
+            prevBtn.textContent = 'Previous';
+            prevBtn.className = 'w-full text-white font-bold py-3.5 rounded-full shadow-lg transition-colors bg-gray-500 hover:bg-gray-600 no-zoom';
+            prevBtn.addEventListener('click', previousQuestion);
+
+            // Hide the previous button on the first question
+            if (currentQuestionIndex === 0) {
+                prevBtn.classList.add('hidden');
+            }
+
+            // Next/Submit Button
+            let nextBtn;
+            if (currentQuestionIndex === allQuestions.length - 1) {
+                nextBtn = document.createElement('button');
+                nextBtn.id = 'submit-btn';
+                nextBtn.textContent = 'Submit Quiz';
+                nextBtn.className = 'w-full text-white font-bold py-3.5 rounded-full shadow-lg transition-colors submit-btn no-zoom';
+                nextBtn.addEventListener('click', submitQuiz);
+            } else {
+                nextBtn = document.createElement('button');
+                nextBtn.id = 'next-btn';
+                nextBtn.textContent = 'Next';
+                nextBtn.className = 'w-full text-white font-bold py-3.5 rounded-full shadow-lg transition-colors bg-blue-600 hover:bg-blue-700 no-zoom';
+                nextBtn.addEventListener('click', nextQuestion);
+            }
+            
+            navButtonsDiv.appendChild(prevBtn);
+            navButtonsDiv.appendChild(nextBtn);
+            questionBox.appendChild(navButtonsDiv);
+            
+            quizForm.appendChild(questionBox);
+            
+            // Highlight the previously selected answer if it exists
+            if (userAnswers[index] !== undefined) {
+                const selectedLabel = quizForm.querySelector(`input[name="question-${index}"][value="${userAnswers[index]}"]`).closest('label');
+                if (selectedLabel) {
+                    selectedLabel.classList.add('selected');
+                    selectedLabel.querySelector('input').checked = true; // Set the radio button as checked
+                }
+            }
+
+            // Add event listeners for new radio buttons
+            const radioButtons = quizForm.querySelectorAll('input[type="radio"]');
+            radioButtons.forEach(radio => {
+                radio.addEventListener('change', (event) => {
+                    const parentLabel = event.target.closest('label');
+                    const questionBox = parentLabel.closest('div');
+                    
+                    // Remove 'selected' class from all other labels in the same question
+                    questionBox.querySelectorAll('label').forEach(label => {
+                        label.classList.remove('selected');
+                    });
+                    
+                    // Add 'selected' class to the currently chosen label
+                    parentLabel.classList.add('selected');
+                });
+            });
+        }
+        
+        // Function to start the countdown timer
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timerSeconds--;
+                const minutes = Math.floor(timerSeconds / 60);
+                const seconds = timerSeconds % 60;
+                timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (timerSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = "Time's up!";
+                    submitQuiz();
+                }
+            }, 1000);
+        }
+
+        // Function to show the custom validation modal
+        function showModal(message) {
+            modalMessage.textContent = message;
+            modal.classList.add('active');
+            modal.classList.remove('hidden');
+        }
+
+        // Function to move to the next question
+        function nextQuestion() {
+            const selected = document.querySelector(`input[name="question-${currentQuestionIndex}"]:checked`);
+            if (!selected) {
+                showModal("Please select an option before moving to the next question.");
+                return;
+            }
+            userAnswers[currentQuestionIndex] = parseInt(selected.value);
+            
+            currentQuestionIndex++;
+            if (currentQuestionIndex < allQuestions.length) {
+                renderQuestion(currentQuestionIndex);
+            }
+        }
+        
+        // Function to move to the previous question
+        function previousQuestion() {
+            // Save the current answer before moving back
+            const selected = document.querySelector(`input[name="question-${currentQuestionIndex}']:checked`);
+            if (selected) {
+                userAnswers[currentQuestionIndex] = parseInt(selected.value);
+            }
+            
+            currentQuestionIndex--;
+            if (currentQuestionIndex >= 0) {
+                renderQuestion(currentQuestionIndex);
+            }
+        }
+        
+        // New function to start the quiz after name entry
+        function startQuiz() {
+            const name = nameInput.value.trim();
+            if (!name) {
+                showModal("Please enter your name to start the quiz.");
+                return;
+            }
+            userName = name;
+            nameEntryContainer.classList.add('hidden');
+            quizContentWrapper.classList.remove('hidden');
+            renderQuestion(currentQuestionIndex);
+            startTimer();
+        }
+
+        // Function to render the full quiz results with correct and incorrect answers highlighted
+        function renderFullResults() {
+            fullQuizReview.innerHTML = ''; // Clear previous review
+            
+            allQuestions.forEach((q, index) => {
+                const questionReviewItem = document.createElement('div');
+                questionReviewItem.className = 'quiz-review-item';
+                
+                const questionText = document.createElement('p');
+                // Use the quiz-review-question class to apply bright red color
+                questionText.className = 'quiz-review-question';
+                // Get clean text content from the question string (strip leading number and dot)
+                questionText.innerHTML = `<span class="question-number-circle">${index + 1}</span> ${q.question.replace(/^\d+\.\s*/, '')}`;
+                questionReviewItem.appendChild(questionText);
+
+                q.options.forEach((option, optionIndex) => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'quiz-review-option';
+                    
+                    const isCorrect = optionIndex === q.correct;
+                    const isUserAnswer = userAnswers[index] === optionIndex;
+
+                    // Apply green for correct answer
+                    if (isCorrect) {
+                        optionDiv.classList.add('correct');
+                        optionDiv.innerHTML = `✅ ${option}`;
+                    } 
+                    // Apply red for incorrect user answer
+                    else if (isUserAnswer) {
+                        optionDiv.classList.add('incorrect');
+                        optionDiv.innerHTML = `❌ ${option}`;
+                    }
+                    // Default styling for other options
+                    else {
+                        optionDiv.innerHTML = `${String.fromCharCode(65 + optionIndex)}. ${option}`;
+                    }
+                    
+                    questionReviewItem.appendChild(optionDiv);
+                });
+                
+                fullQuizReview.appendChild(questionReviewItem);
+            });
+        }
+
+        // Function to submit the quiz and display results
+        function submitQuiz() {
+            clearInterval(timerInterval); // Stop the timer
+            
+            // Check if the final question is answered
+            const selected = document.querySelector(`input[name="question-${currentQuestionIndex}"]:checked`);
+            if (!selected) {
+                showModal("Please select an option before submitting.");
+                return;
+            }
+            userAnswers[currentQuestionIndex] = parseInt(selected.value);
+
+            // Disable all radio buttons and buttons after submission
+            const allRadios = quizForm.querySelectorAll('input[type="radio"]');
+            allRadios.forEach(radio => radio.disabled = true);
+
+            let score = 0;
+            allQuestions.forEach((q, index) => {
+                if (userAnswers[index] === q.correct) {
+                    score++;
+                }
+            });
+
+            // Display results
+            userNameResult.textContent = `Quiz Taker: ${userName}`;
+            document.getElementById('total-questions').textContent = allQuestions.length;
+            document.getElementById('obtained-marks').textContent = score;
+            
+            // Render the full quiz review
+            renderFullResults();
+
+            // Hide quiz, show results container
+            quizContentWrapper.classList.add('hidden');
+            resultsContainer.classList.remove('hidden');
+            resultsContainer.scrollBy.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Show the name entry screen by default
+            nameEntryContainer.classList.remove('hidden');
+        });
+        
+        startBtn.addEventListener('click', startQuiz);
+        
+        modalCloseBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            modal.classList.remove('active');
+        });
+        
+        // Event listener for the "Print Result" button
+        printBtn.addEventListener('click', () => {
+            window.print();
+        });
+        
+        // Event listener for the "Download Result Card" button
+        downloadBtn.addEventListener('click', () => {
+            const headerContent = document.getElementById('header').innerHTML;
+            const footerContent = document.getElementById('footer').innerHTML;
+            const userName = document.getElementById('user-name-result').textContent;
+            const totalQuestions = document.getElementById('total-questions').textContent;
+            const obtainedMarks = document.getElementById('obtained-marks').textContent;
+
+            // Create a temporary, hidden container for the image generation
+            const tempContainer = document.createElement('div');
+            tempContainer.id = 'download-result-container';
+            document.body.appendChild(tempContainer);
+
+            // Get current date and time
+            const now = new Date();
+            const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            
+            // Build the simplified content for the image
+            tempContainer.innerHTML = `
+                <div class="header-clone">${headerContent}</div>
+                <div class="results-clone">
+                    <h2 class="text-3xl font-extrabold text-center mb-4 text-green-700">Quiz Results</h2>
+                    <p class="text-lg mb-1 text-center font-bold text-gray-700">Physics MCQs Class 9th Unit 2</p>
+                    <p class="text-lg mb-3 text-center font-extrabold text-green-600">${userName}</p>
+                    <p class="text-lg text-gray-700 mt-4 text-center">Date: ${dateStr} - Time: ${timeStr}</p>
+                    <p class="text-lg mb-3 text-center">
+                        Total Questions: <span class="font-extrabold text-green-600">${totalQuestions}</span>
+                    </p>
+                    <p class="text-lg mb-6 text-center">
+                        Obtained Marks: <span class="font-extrabold text-green-600">${obtainedMarks}</span>
+                    </p>
+                </div>
+                <div class="footer-clone">${footerContent}</div>
+            `;
+            
+            // Use html2canvas to capture the content of the temporary container
+            html2canvas(tempContainer, {
+                scale: 2, // Increase scale for a higher-quality image
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                const image = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.href = image;
+                link.download = 'SST_Test_Result_Card.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }).finally(() => {
+                // Clean up the temporary container
+                document.body.removeChild(tempContainer);
+            });
+        });
+    </script>
+</body>
+</html>
